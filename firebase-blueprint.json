@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "LearningSession": {
+      "title": "Learning Session",
+      "description": "A record of a single learning session with cognitive metrics",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "number" },
+        "subject": { "type": "string" },
+        "perceivedComplexity": { "type": "number" },
+        "distractions": { "type": "number" },
+        "energyLevel": { "type": "number" },
+        "performanceScore": { "type": "number" },
+        "notes": { "type": "string" },
+        "cognitiveDebitScore": { "type": "number" }
+      },
+      "required": ["id", "userId", "timestamp", "durationMinutes", "subject", "perceivedComplexity", "distractions", "energyLevel", "performanceScore", "cognitiveDebitScore"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Information about the user and their cognitive profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastAnalysisInsights": { "type": "string" },
+        "lastDebitScore": { "type": "number" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "LearningReminder": {
+      "title": "Learning Reminder",
+      "description": "A scheduled reminder for a future learning session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "subject": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "sessionType": { "type": "string" },
+        "notified": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "subject", "timestamp", "sessionType", "notified"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profiles and aggregate stats"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "LearningSession",
+      "description": "Individual learning sessions indexed for retrieval"
+    },
+    "/reminders/{reminderId}": {
+      "schema": "LearningReminder",
+      "description": "Scheduled notifications for future work"
+    }
+  }
+}
