@@ -1,11 +1,7 @@
-import { createServerApp } from '../server.ts';
+import { createBackendApp } from '../backend/app.ts';
+
+const app = createBackendApp();
 
 export default async function handler(req: any, res: any) {
-  try {
-    const app = await createServerApp();
-    return app(req, res);
-  } catch (err: any) {
-    console.error('Vercel Function Error:', err);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
-  }
+  return app(req, res);
 }
