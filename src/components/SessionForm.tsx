@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LearningSession } from '../types';
 import { Plus, X, Brain, Activity, Clock, Target, AlertCircle, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -19,6 +20,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onAdd, isAnalyzing }) 
     energyLevel: 7,
     performanceScore: 80,
     sessionType: 'deep-work' as LearningSession['sessionType'],
+    studyEnvironment: 'Quiet' as LearningSession['studyEnvironment'],
     flowStateRating: 5,
     notes: ''
   });
@@ -51,6 +53,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onAdd, isAnalyzing }) 
       energyLevel: 7,
       performanceScore: 80,
       sessionType: 'deep-work',
+      studyEnvironment: 'Quiet',
       flowStateRating: 5,
       notes: ''
     });
@@ -66,50 +69,51 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onAdd, isAnalyzing }) 
           setIsOpen(true);
           setErrors({});
         }}
-        className="flex items-center gap-2 bg-brand-primary text-white px-5 py-2.5 rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+        className="flex items-center gap-2 bg-brand-accent text-white px-5 py-2.5 rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
       >
         <Plus size={18} />
         Log Session
       </motion.button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:items-center overflow-y-auto bg-slate-950/20 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0"
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              className="relative w-full max-w-lg bg-slate-900/90 backdrop-blur-3xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden my-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-xl z-20">
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-[10000] flex items-start justify-center p-4 sm:items-center overflow-y-auto bg-black/70 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsOpen(false)}
+                className="fixed inset-0"
+              />
+              
+              <motion.div
+                initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 50, scale: 0.95 }}
+                className="relative w-full max-w-lg bg-slate-900/95 backdrop-blur-3xl rounded-3xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden my-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+              <div className="p-4 md:p-6 border-b border-white/5 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-xl z-20">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400 glow-border">
-                    <Brain size={24} />
+                  <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400 glow-border shrink-0">
+                    <Brain size={20} className="md:w-6 md:h-6" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-light tracking-tight text-white uppercase">Initialize <span className="font-bold text-indigo-400">Data Point</span></h2>
-                    <p className="text-xs text-slate-500 italic">"Am I pushing my brain too hard?"</p>
+                  <div className="min-w-0">
+                    <h2 className="text-lg md:text-xl font-light tracking-tight text-white uppercase truncate">Initialize <span className="font-bold text-indigo-400">Data Point</span></h2>
+                    <p className="text-[10px] text-slate-500 italic hidden sm:block">"Am I pushing my brain too hard?"</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400"
+                  className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400 shrink-0"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               <div className="max-h-[calc(100vh-180px)] overflow-y-auto">
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4 md:space-y-6">
                   <div>
                     <label className="tech-label mb-2 block">What were you doing?</label>
                     <input
@@ -143,6 +147,21 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onAdd, isAnalyzing }) 
                         <option value="light-review">Light Review (Easy)</option>
                         <option value="active-recall">Active Recall (Medium)</option>
                         <option value="lecture">Lecture / Passive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="tech-label mb-2 block">Study Environment</label>
+                      <select
+                        value={formData.studyEnvironment}
+                        onChange={(e) => setFormData({ ...formData, studyEnvironment: e.target.value as any })}
+                        className="w-full bg-slate-800 text-white px-4 py-2 rounded-xl border border-white/10 focus:outline-none focus:border-indigo-400 transition-all font-mono text-sm"
+                      >
+                        <option value="Quiet">Quiet</option>
+                        <option value="Moderate Noise">Moderate Noise</option>
+                        <option value="Distracting">Distracting</option>
                       </select>
                     </div>
                   </div>
@@ -261,7 +280,9 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onAdd, isAnalyzing }) 
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
     </>
   );
 };

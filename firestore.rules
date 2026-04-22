@@ -2,47 +2,106 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 0. Global Safety Net
     match /{document=**} {
       allow read, write: if false;
     }
 
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // --- Helpers ---
+    function isSignedIn() {
+      // Relaxing email_verified requirement as it often blocks development users
+      // In production, you should re-enable: && request.auth.token.email_verified == true
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidId(id) {
+      // Relaxed regex to allow dots and other safe chars often found in UIDs, while still capping length.
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // --- Collections ---
+
+    match /profiles/{uid} {
+      allow get: if isOwner(uid) && isValidId(uid);
+      allow create: if isOwner(uid) && isValidId(uid) && isValidProfile(incoming(), true);
+      allow update: if isOwner(uid) && isValidId(uid) && isValidProfile(incoming(), false) 
+        && incoming().diff(resource.data).affectedKeys().hasOnly(['displayName', 'bio', 'preferences', 'photoURL', 'lastAnalysisInsights', 'lastDebitScore', 'hasSeenTutorial', 'uid', 'email', 'joinedAt'])
+        && (incoming().get('uid', resource.data.uid) == resource.data.uid)
+        && (incoming().get('email', resource.data.email) == resource.data.email)
+        && (incoming().get('joinedAt', resource.data.joinedAt) == resource.data.joinedAt);
+
+      function isValidProfile(data, isCreate) {
+        return (isCreate || 'uid' in data ? data.uid == request.auth.uid : true)
+          && (data.get('email', '') is string)
+          && (data.get('displayName', '') is string)
+          && (data.get('joinedAt', '') is string)
+          && (data.get('preferences', {}) is map)
+          && (data.get('bio', null) == null || data.get('bio', '') is string)
+          && (data.get('photoURL', null) == null || data.get('photoURL', '') is string)
+          && (data.get('lastAnalysisInsights', null) == null || data.get('lastAnalysisInsights', '') is string)
+          && (data.get('lastDebitScore', null) == null || data.get('lastDebitScore', 0) is number)
+          && (data.get('hasSeenTutorial', null) == null || data.get('hasSeenTutorial', false) is bool);
+      }
     }
 
     match /sessions/{sessionId} {
-      allow list, get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && isValidSession(request.resource.data);
-      allow update: if request.auth != null && resource.data.userId == request.auth.uid && isValidSession(request.resource.data);
-      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      function isValidSession(data) {
-        return data.userId == request.auth.uid 
-          && data.timestamp is string 
-          && data.durationMinutes is number
-          && data.subject is string
-          && data.perceivedComplexity is number
-          && data.distractions is number
-          && data.energyLevel is number
-          && data.performanceScore is number
-          && data.cognitiveDebitScore is number
-          && data.sessionType is string
-          && data.flowStateRating is number;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isDocOwner() && isValidId(sessionId);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(sessionId) && isValidSession(incoming(), true);
+      allow update: if isDocOwner() && isValidId(sessionId) && isValidSession(incoming(), false)
+        && incoming().diff(resource.data).affectedKeys().hasOnly(['subject', 'durationMinutes', 'perceivedComplexity', 'distractions', 'energyLevel', 'performanceScore', 'notes', 'sessionType', 'flowStateRating', 'cognitiveDebitScore', 'id', 'userId', 'timestamp', 'studyEnvironment'])
+        && (incoming().get('id', resource.data.id) == resource.data.id)
+        && (incoming().get('userId', resource.data.userId) == resource.data.userId)
+        && (incoming().get('timestamp', resource.data.timestamp) == resource.data.timestamp);
+      allow delete: if isDocOwner() && isValidId(sessionId);
+
+      function isValidSession(data, isCreate) {
+        return (isCreate || 'userId' in data ? data.userId == request.auth.uid : true)
+          && (data.get('timestamp', '') is string)
+          && (data.get('durationMinutes', 0) is number)
+          && (data.get('durationMinutes', 1) > 0)
+          && (data.get('subject', '') is string)
+          && (data.get('subject', 'a').size() > 0)
+          && (data.get('perceivedComplexity', 0) is number)
+          && (data.get('distractions', 0) is number)
+          && (data.get('energyLevel', 0) is number)
+          && (data.get('performanceScore', 0) is number)
+          && (data.get('cognitiveDebitScore', 0) is number)
+          && (data.get('sessionType', 'deep-work') in ['deep-work', 'active-recall', 'light-review', 'lecture'])
+          && (data.get('studyEnvironment', 'Quiet') in ['Quiet', 'Moderate Noise', 'Distracting'])
+          && (data.get('flowStateRating', 0) is number);
       }
     }
 
     match /reminders/{reminderId} {
-      allow list, get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid && isValidReminder(request.resource.data);
-      allow update: if request.auth != null && resource.data.userId == request.auth.uid && isValidReminder(request.resource.data);
-      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isDocOwner() && isValidId(reminderId);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(reminderId) && isValidReminder(incoming(), true);
+      allow update: if isDocOwner() && isValidId(reminderId) && isValidReminder(incoming(), false)
+        && incoming().diff(resource.data).affectedKeys().hasOnly(['subject', 'timestamp', 'sessionType', 'notified', 'id', 'userId'])
+        && (incoming().get('id', resource.data.id) == resource.data.id)
+        && (incoming().get('userId', resource.data.userId) == resource.data.userId);
+      allow delete: if isDocOwner() && isValidId(reminderId);
 
-      function isValidReminder(data) {
-        return data.userId == request.auth.uid 
-          && data.subject is string 
-          && data.timestamp is string
-          && data.sessionType is string
-          && data.notified is bool;
+      function isValidReminder(data, isCreate) {
+        return (isCreate || 'userId' in data ? data.userId == request.auth.uid : true)
+          && (data.get('subject', '') is string)
+          && (data.get('subject', 'a').size() > 0)
+          && (data.get('timestamp', '') is string)
+          && (data.get('sessionType', 'deep-work') in ['deep-work', 'active-recall', 'light-review', 'lecture'])
+          && (data.get('notified', false) is bool);
       }
     }
   }

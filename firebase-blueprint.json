@@ -14,10 +14,25 @@
         "distractions": { "type": "number" },
         "energyLevel": { "type": "number" },
         "performanceScore": { "type": "number" },
+        "sessionType": { "type": "string" },
+        "studyEnvironment": { "type": "string", "enum": ["Quiet", "Moderate Noise", "Distracting"] },
+        "flowStateRating": { "type": "number" },
         "notes": { "type": "string" },
         "cognitiveDebitScore": { "type": "number" }
       },
-      "required": ["id", "userId", "timestamp", "durationMinutes", "subject", "perceivedComplexity", "distractions", "energyLevel", "performanceScore", "cognitiveDebitScore"]
+      "required": ["id", "userId", "timestamp", "durationMinutes", "subject", "perceivedComplexity", "distractions", "energyLevel", "performanceScore", "cognitiveDebitScore", "sessionType", "studyEnvironment", "flowStateRating"]
+    },
+    "LearningPreferences": {
+      "title": "Learning Preferences",
+      "description": "User specific learning parameters",
+      "type": "object",
+      "properties": {
+        "primaryGoal": { "type": "string" },
+        "preferredSessionDuration": { "type": "number" },
+        "dailyTargetMinutes": { "type": "number" },
+        "learningStyle": { "type": "string" },
+        "focusMusic": { "type": "boolean" }
+      }
     },
     "UserProfile": {
       "title": "User Profile",
@@ -27,11 +42,15 @@
         "uid": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "displayName": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" },
         "lastAnalysisInsights": { "type": "string" },
-        "lastDebitScore": { "type": "number" }
+        "lastDebitScore": { "type": "number" },
+        "hasSeenTutorial": { "type": "boolean" },
+        "preferences": { "$ref": "#/entities/LearningPreferences" }
       },
-      "required": ["uid", "email", "createdAt"]
+      "required": ["uid", "email", "joinedAt", "preferences"]
     },
     "LearningReminder": {
       "title": "Learning Reminder",
@@ -49,7 +68,7 @@
     }
   },
   "firestore": {
-    "/users/{uid}": {
+    "/profiles/{uid}": {
       "schema": "UserProfile",
       "description": "User profiles and aggregate stats"
     },

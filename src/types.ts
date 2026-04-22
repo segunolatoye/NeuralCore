@@ -1,3 +1,24 @@
+export interface LearningPreferences {
+  primaryGoal: string;
+  preferredSessionDuration: number;
+  dailyTargetMinutes: number;
+  learningStyle: 'visual' | 'auditory' | 'kinesthetic' | 'reading';
+  focusMusic: boolean;
+}
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  photoURL?: string;
+  bio?: string;
+  preferences: LearningPreferences;
+  joinedAt: string;
+  lastAnalysisInsights?: string;
+  lastDebitScore?: number;
+  hasSeenTutorial?: boolean;
+}
+
 export type CognitiveLoadLevel = 'low' | 'moderate' | 'high' | 'peak';
 
 export interface LearningSession {
@@ -12,6 +33,7 @@ export interface LearningSession {
   performanceScore: number; // 0-100
   sessionType: 'deep-work' | 'light-review' | 'active-recall' | 'lecture';
   flowStateRating: number; // 1-10 (How 'in the zone' were you?)
+  studyEnvironment: 'Quiet' | 'Moderate Noise' | 'Distracting';
   notes?: string;
   cognitiveDebitScore: number; 
 }

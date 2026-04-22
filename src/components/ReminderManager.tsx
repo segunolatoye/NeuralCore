@@ -95,13 +95,15 @@ export const ReminderManager: React.FC = () => {
           </div>
           <h2 className="text-xl font-light tracking-tight text-white uppercase">Neural <span className="font-bold text-indigo-400">Triggers</span></h2>
         </div>
-        <button
-          onClick={() => setIsOpen(true)}
-          className="p-2 hover:bg-white/5 rounded-full text-indigo-400 transition-colors"
-          title="Add Reminder"
-        >
-          <Plus size={24} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsOpen(true)}
+            className="p-2 hover:bg-white/5 rounded-full text-indigo-400 transition-colors"
+            title="Add Reminder"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">

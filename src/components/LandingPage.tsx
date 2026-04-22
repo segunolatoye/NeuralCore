@@ -4,7 +4,7 @@ import { Brain, LogIn, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const LandingPage: React.FC = () => {
-  const { signIn, loading } = useAuth();
+  const { signIn, loading, error } = useAuth();
 
   return (
     <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6 relative overflow-hidden">
@@ -41,6 +41,15 @@ export const LandingPage: React.FC = () => {
           </p>
 
           <div className="space-y-4">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] uppercase tracking-wider font-mono leading-relaxed"
+              >
+                {error}
+              </motion.div>
+            )}
             <button
               onClick={signIn}
               disabled={loading}
