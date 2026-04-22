@@ -8,6 +8,7 @@ import {
   ShieldCheck, 
   History, 
   Bell,
+  Clock,
   LineChart
 } from 'lucide-react';
 
@@ -26,16 +27,22 @@ export const HowToUse: React.FC = () => {
       detail: "A score over 70 DBT indicates 'Neural Redlining'—you're working hard but retaining very little."
     },
     {
-      title: "Set Neural Triggers",
-      description: "Use the Trigger Manager to schedule future sessions. The system will send a 'Neural Activation' alert when it's time to start.",
+      title: "Neural Triggers",
+      description: "Schedule future work in the Trigger Manager. You can now modify these 'Triggers' at any time by clicking the Edit icon—no need to delete and recreate.",
       icon: <Bell className="text-orange-400" size={24} />,
-      detail: "Consistent logging creates better predictive data for your neural energy cycles."
+      detail: "Adaptive scheduling: Unlike static calendars, triggers are designed to be fluidly moved based on your current Cognitive Debit levels."
     },
     {
-      title: "Neural Orientation",
-      description: "If you're new or need a refresher, the system-wide tutorial overlay provides a step-by-step walkthrough of the command center.",
-      icon: <Zap className="text-emerald-400" size={24} />,
-      detail: "Orientation is automatically triggered on first login, but technical specs can always be found here in the manual."
+      title: "Neural Persistence",
+      description: "Your data is now globally synchronized. Sign in from any device to access your 'Neural Identity', cognitive records, and behavioral insights instantly.",
+      icon: <ShieldCheck className="text-emerald-400" size={24} />,
+      detail: "Secure cross-session storage ensures that your AI-generated 'Brain Debt' analysis remains accurate and historical records are never lost."
+    },
+    {
+      title: "Snooze Protocol",
+      description: "When a trigger activates, you can 'Initiate Session' or 'Snooze 15m'. Snoozing intelligently recalibrates the trigger point in the cloud.",
+      icon: <Clock className="text-indigo-400" size={24} />,
+      detail: "Snoozing is preferred over dismissing when biological levels temporarily dip, allowing for a short recovery period before neural activation."
     }
   ];
 
@@ -131,26 +138,35 @@ export const HowToUse: React.FC = () => {
               </p>
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-bold text-white uppercase">Identity Protocol</p>
+              <p className="text-sm font-bold text-white uppercase">Neural Identity Sync</p>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Visit the 'Identity' tab to sync your learning style and cognitive parameters. 
-                Updating your 'Neural Bio' helps contextualize your data for more accurate AI reporting.
+                Your neural profile, preferences, and performance history are now automatically encrypted and synced to the cloud. 
+                Logging in from any terminal restores your full neural state and active session logs instantly.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <footer className="text-center p-6 space-y-4">
-        <p className="text-slate-500 text-[10px] uppercase tracking-[0.4em] font-mono">
-          Ready to optimize your neural hardware?
-        </p>
-        <button 
-          onClick={() => window.location.hash = '#dashboard'}
-          className="bg-white/5 hover:bg-white/10 text-brand-accent px-8 py-3 rounded-full border border-white/10 transition-all flex items-center gap-2 mx-auto uppercase text-xs font-bold tracking-widest"
-        >
-          Return to Command Center <ArrowRight size={14} />
-        </button>
+      <footer className="text-center p-6 space-y-6">
+        <div className="space-y-4">
+          <p className="text-slate-500 text-[10px] uppercase tracking-[0.4em] font-mono">
+            Ready to optimize your neural hardware?
+          </p>
+          <button 
+            onClick={() => window.location.hash = '#dashboard'}
+            className="bg-white/5 hover:bg-white/10 text-brand-accent px-8 py-3 rounded-full border border-white/10 transition-all flex items-center gap-2 mx-auto uppercase text-xs font-bold tracking-widest"
+          >
+            Return to Command Center <ArrowRight size={14} />
+          </button>
+        </div>
+
+        <div className="pt-8 border-t border-white/5">
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-mono leading-relaxed max-w-lg mx-auto">
+            This platform is based on a school project by <span className="text-indigo-400 font-bold">Suliyat Folorunsho</span>, 
+            developed as a requirement for the completion of a <span className="text-white">BSc in Computer Science</span>.
+          </p>
+        </div>
       </footer>
     </motion.div>
   );

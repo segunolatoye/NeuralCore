@@ -27,44 +27,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setError(null);
-        // Ensure user profile exists in Firestore
-        const userRef = doc(db, 'profiles', user.uid);
-        const userDoc = await getDoc(userRef);
-        
-        if (!userDoc.exists()) {
-          await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || 'Neural Learner',
-            joinedAt: new Date().toISOString(),
-            lastDebitScore: 0,
-            lastAnalysisInsights: '',
-            preferences: {
-              primaryGoal: 'Optimized Cognitive Flow',
-              preferredSessionDuration: 45,
-              dailyTargetMinutes: 120,
-              learningStyle: 'visual',
-              focusMusic: true
-            }
-          });
+      try {
+        if (user) {
+          setError(null);
+          // Ensure user profile exists in Firestore
+          const userRef = doc(db, 'profiles', user.uid);
+          const userDoc = await getDoc(userRef);
+          
+          if (!userDoc.exists()) {
+            await setDoc(userRef, {
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || 'Neural Learner',
+              joinedAt: new Date().toISOString(),
+              lastDebitScore: 0,
+              lastAnalysisInsights: '',
+              preferences: {
+                primaryGoal: 'Optimized Cognitive Flow',
+                preferredSessionDuration: 45,
+                dailyTargetMinutes: 120,
+                learningStyle: 'visual',
+                focusMusic: true
+              }
+            });
+          }
+          setUser(user);
+        } else {
+          setUser(null);
         }
-        setUser(user);
-      } else {
-        setUser(null);
+      } catch (err) {
+        console.error("Auth profile sync failed:", err);
+        // Even if profile sync fails, set the user so the app can attempt to function
+        if (user) setUser(user);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   const signIn = async () => {
+    setLoading(true);
+    setError(null);
     // 1. Try Custom OAuth Client if configured (server-side flow)
     try {
-      setError(null);
-      
       // Step A: Get Auth URL from our server
       const urlResponse = await fetch('/api/auth/google/url');
       if (urlResponse.ok) {
@@ -78,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         // Step B: Listen for the callback message
-        return new Promise<void>((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           const handleAuthMessage = async (event: MessageEvent) => {
             if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
               window.removeEventListener('message', handleAuthMessage);
@@ -107,15 +114,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
 
           window.addEventListener('message', handleAuthMessage);
+          
+          // Fallback: resolution via onAuthStateChanged will handle the final state
+          // but we still need a timeout or window interval to detect close
+          const checkWindow = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkWindow);
+              // Small delay to allow message to process if it just finished
+              setTimeout(() => reject({ code: 'auth/popup-closed-by-user' }), 1000);
+            }
+          }, 500);
         });
+        return; // Success handled by onAuthStateChanged
       }
     } catch (error: any) {
       console.warn("Custom OAuth failed or not configured, falling back to standard popup:", error);
+      if (error.code === 'auth/popup-blocked') {
+        setError("Login popup was blocked. In this preview environment, you may need to 'Open in New Tab' using the button in the top right to complete authentication.");
+        setLoading(false);
+        throw error;
+      }
       // Fallback to standard Firebase popup if custom server fails or isn't set up
     }
 
     const provider = new GoogleAuthProvider();
-    setError(null);
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
@@ -133,6 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setError(message);
+      setLoading(false);
       throw error;
     }
   };

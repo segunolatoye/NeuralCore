@@ -4,7 +4,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Brain, LayoutDashboard, History, Sparkles, LogOut, ChevronRight, BookOpen, User, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { 
+  Brain, 
+  LayoutDashboard, 
+  History, 
+  Sparkles, 
+  LogOut, 
+  ChevronRight, 
+  BookOpen, 
+  User, 
+  ChevronLeft, 
+  PanelLeftClose, 
+  PanelLeftOpen,
+  Info
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LearningSession, AIRecommendation } from './types';
 import { DashboardCharts } from './components/DashboardCharts';
@@ -31,6 +44,7 @@ import { useAuth } from './context/AuthContext';
 import { LandingPage } from './components/LandingPage';
 import { HowToUse } from './components/HowToUse';
 import { Profile } from './components/Profile';
+import { About } from './components/About';
 import { TutorialOverlay } from './components/TutorialOverlay';
 
 import { ReminderManager } from './components/ReminderManager';
@@ -49,7 +63,7 @@ export default function App() {
     insights: string;
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'sessions' | 'how-to' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'sessions' | 'how-to' | 'profile' | 'about'>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
@@ -62,11 +76,12 @@ export default function App() {
         // Load sessions
         const q = query(
           collection(db, 'sessions'),
-          where('userId', '==', user.uid),
-          orderBy('timestamp', 'asc')
+          where('userId', '==', user.uid)
         );
         const querySnapshot = await getDocs(q);
-        const loadedSessions = querySnapshot.docs.map(doc => doc.data() as LearningSession);
+        const loadedSessions = querySnapshot.docs
+          .map(doc => doc.data() as LearningSession)
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         setSessions(loadedSessions);
 
         // Load profile analysis
@@ -296,6 +311,17 @@ export default function App() {
             </div>
             {!sidebarCollapsed && activeTab === 'profile' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />}
           </button>
+          <button 
+             onClick={() => setActiveTab('about')}
+             className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-4'} py-3 rounded-2xl transition-all ${activeTab === 'about' ? 'bg-white/10 text-white border border-white/10' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+             title="About Project"
+          >
+            <div className={`flex items-center ${sidebarCollapsed ? 'gap-0' : 'gap-3'}`}>
+              <Info size={20} className="shrink-0" />
+              {!sidebarCollapsed && <span className="font-medium whitespace-nowrap">About</span>}
+            </div>
+            {!sidebarCollapsed && activeTab === 'about' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)]" />}
+          </button>
         </div>
 
         <div className="mt-auto pt-6 border-t border-white/5 space-y-4 overflow-hidden">
@@ -366,7 +392,8 @@ export default function App() {
               <h1 className="text-xl md:text-2xl font-light tracking-tight glow-text text-white uppercase">
                 {activeTab === 'dashboard' ? 'NEURAL ENGINE' : 
                  activeTab === 'sessions' ? 'TEMPORAL LOGS' : 
-                 activeTab === 'how-to' ? 'OPERATING MANUAL' : 'NEURAL IDENTITY'}
+                 activeTab === 'how-to' ? 'OPERATING MANUAL' : 
+                 activeTab === 'about' ? 'PROJECT CREDITS' : 'NEURAL IDENTITY'}
               </h1>
               <div className="glass-pill text-[8px] md:text-[10px] text-slate-500 font-mono">v2.1</div>
             </div>
@@ -377,7 +404,9 @@ export default function App() {
                   ? 'System processing logs and historical records' 
                   : activeTab === 'how-to'
                     ? 'Protocol documentation for optimal system usage'
-                    : 'User neural profile and cognitive parameters'}
+                    : activeTab === 'about'
+                      ? 'Academic credentials and project information'
+                      : 'User neural profile and cognitive parameters'}
             </p>
           </div>
           <div id="session-form-trigger" className="w-full sm:w-auto">
@@ -391,7 +420,8 @@ export default function App() {
             <h1 className="text-xl font-light tracking-tight text-white uppercase">
               {activeTab === 'dashboard' ? 'Neural Engine' : 
                activeTab === 'sessions' ? 'Temporal Logs' : 
-               activeTab === 'how-to' ? 'Operating Manual' : 'Neural Identity'}
+               activeTab === 'how-to' ? 'Operating Manual' : 
+               activeTab === 'about' ? 'Project Credits' : 'Neural Identity'}
             </h1>
             <SessionForm onAdd={handleAddSession} isAnalyzing={isAnalyzing} />
           </div>
@@ -542,7 +572,7 @@ export default function App() {
               >
                 <HowToUse />
               </motion.div>
-            ) : (
+            ) : activeTab === 'profile' ? (
               <motion.div
                 key="profile"
                 initial={{ opacity: 0, y: 10 }}
@@ -550,6 +580,15 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
               >
                 <Profile />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <About />
               </motion.div>
             )}
           </AnimatePresence>
@@ -591,6 +630,13 @@ export default function App() {
         >
           <User size={20} />
           <span className="text-[9px] font-bold uppercase tracking-tighter">Self</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('about')}
+          className={`flex flex-col items-center gap-1.5 transition-all ${activeTab === 'about' ? 'text-indigo-400 scale-110' : 'text-slate-500'}`}
+        >
+          <Info size={20} />
+          <span className="text-[9px] font-bold uppercase tracking-tighter">About</span>
         </button>
         <button 
           onClick={logout}

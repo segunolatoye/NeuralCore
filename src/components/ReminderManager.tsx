@@ -21,6 +21,7 @@ export const ReminderManager: React.FC = () => {
   const { user } = useAuth();
   const [reminders, setReminders] = useState<LearningReminder[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     subject: '',
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -53,7 +54,7 @@ export const ReminderManager: React.FC = () => {
     if (!user || !formData.subject) return;
 
     const timestamp = `${formData.date}T${formData.time}:00`;
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = editingId || Math.random().toString(36).substr(2, 9);
     
     try {
       await setDoc(doc(db, 'reminders', id), {
@@ -65,6 +66,7 @@ export const ReminderManager: React.FC = () => {
         notified: false
       });
       setIsOpen(false);
+      setEditingId(null);
       setFormData({
         subject: '',
         date: format(new Date(), 'yyyy-MM-dd'),
@@ -72,8 +74,20 @@ export const ReminderManager: React.FC = () => {
         sessionType: 'deep-work'
       });
     } catch (err) {
-      console.error("Failed to add reminder:", err);
+      console.error("Failed to save reminder:", err);
     }
+  };
+
+  const handleEdit = (reminder: LearningReminder) => {
+    const date = parseISO(reminder.timestamp);
+    setFormData({
+      subject: reminder.subject,
+      date: format(date, 'yyyy-MM-dd'),
+      time: format(date, 'HH:mm'),
+      sessionType: reminder.sessionType
+    });
+    setEditingId(reminder.id);
+    setIsOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -82,6 +96,17 @@ export const ReminderManager: React.FC = () => {
     } catch (err) {
       console.error("Failed to delete reminder:", err);
     }
+  };
+
+  const handleCloseModal = () => {
+    setIsOpen(false);
+    setEditingId(null);
+    setFormData({
+      subject: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      time: format(new Date(), 'HH:mm'),
+      sessionType: 'deep-work'
+    });
   };
 
   const upcomingReminders = reminders.filter(r => !r.notified && isAfter(parseISO(r.timestamp), new Date()));
@@ -97,7 +122,10 @@ export const ReminderManager: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsOpen(true)}
+            onClick={() => {
+              setEditingId(null);
+              setIsOpen(true);
+            }}
             className="p-2 hover:bg-white/5 rounded-full text-indigo-400 transition-colors"
             title="Add Reminder"
           >
@@ -133,12 +161,22 @@ export const ReminderManager: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => handleDelete(reminder.id)}
-                className="p-2 text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
-              >
-                <Trash2 size={16} />
-              </button>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <button
+                  onClick={() => handleEdit(reminder)}
+                  className="p-2 text-slate-400 hover:text-indigo-400"
+                  title="Edit Trigger"
+                >
+                  <Clock size={16} />
+                </button>
+                <button
+                  onClick={() => handleDelete(reminder.id)}
+                  className="p-2 text-slate-400 hover:text-rose-500"
+                  title="Delete Trigger"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </motion.div>
           ))
         )}
@@ -151,7 +189,7 @@ export const ReminderManager: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
+              onClick={handleCloseModal}
               className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
             />
             <motion.div
@@ -162,8 +200,8 @@ export const ReminderManager: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-light tracking-tight text-white uppercase">Set <span className="font-bold text-indigo-400">Trigger</span></h3>
-                <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-white"><X size={20} /></button>
+                <h3 className="text-lg font-light tracking-tight text-white uppercase">{editingId ? 'Update' : 'Set'} <span className="font-bold text-indigo-400">Trigger</span></h3>
+                <button onClick={handleCloseModal} className="text-slate-500 hover:text-white"><X size={20} /></button>
               </div>
 
               <form onSubmit={handleAddReminder} className="space-y-6">
@@ -220,7 +258,7 @@ export const ReminderManager: React.FC = () => {
                   type="submit"
                   className="w-full bg-indigo-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-bold tracking-widest uppercase text-xs shadow-lg transition-all"
                 >
-                  Schedule Trigger
+                  {editingId ? 'Update Trigger' : 'Schedule Trigger'}
                 </button>
               </form>
             </motion.div>

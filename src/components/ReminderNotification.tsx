@@ -1,7 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, X, Brain } from 'lucide-react';
+import { Bell, X, Clock } from 'lucide-react';
 import { LearningReminder } from '../types';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { addMinutes, format } from 'date-fns';
 
 interface ReminderNotificationProps {
   reminder: LearningReminder | null;
@@ -9,6 +12,21 @@ interface ReminderNotificationProps {
 }
 
 export const ReminderNotification: React.FC<ReminderNotificationProps> = ({ reminder, onClose }) => {
+  const handleSnooze = async () => {
+    if (!reminder) return;
+    
+    try {
+      const newTime = addMinutes(new Date(), 15);
+      await updateDoc(doc(db, 'reminders', reminder.id), {
+        timestamp: newTime.toISOString(),
+        notified: false
+      });
+      onClose(reminder.id);
+    } catch (err) {
+      console.error("Failed to snooze reminder:", err);
+    }
+  };
+
   return (
     <AnimatePresence>
       {reminder && (
@@ -38,19 +56,28 @@ export const ReminderNotification: React.FC<ReminderNotificationProps> = ({ remi
               </button>
             </div>
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-2">
               <button 
                 onClick={() => onClose(reminder.id)}
-                className="flex-1 bg-indigo-600 hover:bg-emerald-500 text-white py-2 rounded-lg font-bold tracking-widest uppercase text-[10px] transition-all"
+                className="w-full bg-indigo-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold tracking-widest uppercase text-[10px] transition-all flex items-center justify-center gap-2"
               >
                 Initiate Session
               </button>
-              <button 
-                onClick={() => onClose(reminder.id)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-400 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all"
-              >
-                Dismiss
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleSnooze}
+                  className="flex-1 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all flex items-center justify-center gap-2"
+                >
+                  <Clock size={12} />
+                  Snooze 15m
+                </button>
+                <button 
+                  onClick={() => onClose(reminder.id)}
+                  className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-400 rounded-lg text-[10px] uppercase font-bold tracking-widest transition-all"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>
