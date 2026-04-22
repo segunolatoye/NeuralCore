@@ -15,10 +15,12 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { format, isAfter, parseISO } from 'date-fns';
 
 export const ReminderManager: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [reminders, setReminders] = useState<LearningReminder[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,6 +67,11 @@ export const ReminderManager: React.FC = () => {
         sessionType: formData.sessionType,
         notified: false
       });
+      toast(
+        editingId ? "Trigger Reconfigured" : "New Trigger Latched", 
+        "success", 
+        `Temporal trigger for '${formData.subject}' is now active.`
+      );
       setIsOpen(false);
       setEditingId(null);
       setFormData({
@@ -75,6 +82,7 @@ export const ReminderManager: React.FC = () => {
       });
     } catch (err) {
       console.error("Failed to save reminder:", err);
+      toast("Trigger Logic Error", "error", "The neural stack failed to latch the temporal trigger.");
     }
   };
 
@@ -93,8 +101,10 @@ export const ReminderManager: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'reminders', id));
+      toast("Trigger Purged", "info", "Temporal notification has been removed from the neural queue.");
     } catch (err) {
       console.error("Failed to delete reminder:", err);
+      toast("Purge Sequence Failed", "error", "Unable to disconnect temporal trigger.");
     }
   };
 

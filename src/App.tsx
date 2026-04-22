@@ -41,6 +41,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { useAuth } from './context/AuthContext';
+import { useToast } from './context/ToastContext';
 import { LandingPage } from './components/LandingPage';
 import { HowToUse } from './components/HowToUse';
 import { Profile } from './components/Profile';
@@ -54,6 +55,7 @@ import { isBefore, parseISO } from 'date-fns';
 
 export default function App() {
   const { user, loading, logout } = useAuth();
+  const { toast } = useToast();
   const [sessions, setSessions] = useState<LearningSession[]>([]);
   const [reminders, setReminders] = useState<LearningReminder[]>([]);
   const [activeNotification, setActiveNotification] = useState<LearningReminder | null>(null);
@@ -142,6 +144,7 @@ export default function App() {
 
   const handleCloseNotification = async (id: string) => {
     setActiveNotification(null);
+    toast("Trigger Dismissed", "info", "Temporal notification has been acknowledged and recycled.");
     try {
       await updateDoc(doc(db, 'reminders', id), {
         notified: true
@@ -153,6 +156,7 @@ export default function App() {
 
   const handleTutorialComplete = async () => {
     setShowTutorial(false);
+    toast("Interface Initialized", "success", "Neural interface calibrated. You are now authorized for core operations.");
     if (!user) return;
     try {
       const profileRef = doc(db, 'profiles', user.uid);
@@ -176,6 +180,7 @@ export default function App() {
     // Optimistic update
     setSessions(prev => [...prev, newSession]);
     setIsAnalyzing(true);
+    toast("Neural Processing Initiated", "info", "Synchronizing session data with the AI analysis engine...");
     
     try {
       // Get AI Analysis
@@ -198,8 +203,10 @@ export default function App() {
       // Update local state with final AI results
       setSessions(prev => prev.map(s => s.id === sessionId ? finalSession : s));
       setAiAnalysis(analysis);
+      toast("Sequence Synchronized", "success", "Neural load analysis complete. Your cognitive debit has been recalculated.");
     } catch (error) {
       console.error("Neural Analysis Failed:", error);
+      toast("Analytics Exception", "error", "The neural engine encountered an error. Session data preserved with heuristic baseline.");
       // Even if AI fails, ensure the session is saved with 0 debit
       try {
         await setDoc(doc(db, 'sessions', sessionId), newSession);

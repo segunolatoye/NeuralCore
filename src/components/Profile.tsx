@@ -13,12 +13,14 @@ import {
   FileEdit
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { UserProfile, LearningPreferences } from '../types';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export const Profile: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -104,9 +106,11 @@ export const Profile: React.FC = () => {
       await setDoc(doc(db, 'profiles', user.uid), updatedProfile);
       setProfile(updatedProfile);
       setSaveSuccess(true);
+      toast("Identity Synchronized", "success", "Neural parameters and cognitive preferences updated successfully.");
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error("Error saving profile:", err);
+      toast("Sync Sequence Failed", "error", "Critical error during neural identity synchronization.");
     } finally {
       setIsSaving(false);
     }

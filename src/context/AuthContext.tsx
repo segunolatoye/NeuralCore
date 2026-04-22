@@ -79,8 +79,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (message.includes('auth/email-already-in-use')) return "This email is already registered in the neural network.";
     if (message.includes('auth/invalid-email')) return "The provided email format is invalid.";
     if (message.includes('auth/weak-password')) return "The security cipher must be at least 6 characters.";
-    if (message.includes('auth/user-not-found') || message.includes('auth/wrong-password') || message.includes('auth/invalid-credential')) {
-      return "Invalid neural credentials. Please check your email and cipher.";
+    if (message.includes('auth/user-not-found')) return "This neural identity was not found in our records.";
+    if (message.includes('auth/wrong-password') || message.includes('auth/invalid-credential')) {
+      return "Invalid neural credentials. Please verify your cipher.";
     }
     if (message.includes('auth/popup-blocked')) return "Login popup was blocked by your browser settings.";
     if (message.includes('auth/popup-closed-by-user')) return "Login window was closed before completion.";
@@ -250,6 +251,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
+      // Toast won't be visible because we redirect to landing page and the layout changes,
+      // but if the app state persists for a moment it might show.
+      // Actually, since we wrap the whole app, it might work if we toast before signOut?
+      // No, signOut is async and once it's done AuthProvider updates 'user' to null.
     } catch (error) {
       console.error("Sign out failed:", error);
       throw error;
