@@ -1,6 +1,6 @@
 {
-  "name": "CogniFlow",
-  "description": "An AI-powered system for analyzing cognitive debit in learning performance. Developed by Suliyat Folorunsho as a requirement for a BSc in Computer Science.",
+  "name": "NeuralCore",
+  "description": "An AI-powered system for analyzing cognitive debit in learning performance. NeuralCore provides deep insights into learning efficiency and cognitive load.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

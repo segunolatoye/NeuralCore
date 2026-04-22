@@ -4,7 +4,7 @@ import { LearningSession, AIRecommendation } from "../types";
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
 
 const SYSTEM_INSTRUCTION = `
-You are the CogniFlow Neural Analytics Engine. Your purpose is to analyze learning history and calculate a precise "Cognitive Debit Score" (DBT).
+You are the NeuralCore Analytics Engine. Your purpose is to analyze learning history and calculate a precise "Cognitive Debit Score" (DBT).
 
 Definition of Cognitive Debit (DBT):
 DBT represents the cumulative neural fatigue and metabolic cost of learning. It is NOT just a per-session score; it is a running status of the user's mental "battery".

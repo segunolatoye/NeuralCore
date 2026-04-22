@@ -109,7 +109,7 @@ export const About: React.FC = () => {
 
       <footer className="text-center pt-8 border-t border-white/5">
          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-mono">
-           CogniFlow Research Implementation &bull; {new Date().getFullYear()}
+           NeuralCore Research Implementation &bull; {new Date().getFullYear()}
          </p>
       </footer>
     </motion.div>

@@ -92,7 +92,9 @@ app.get('/auth/callback', (req, res) => {
         <script>
           if (window.opener) {
             window.opener.postMessage({ type: 'GOOGLE_AUTH_SUCCESS', code: '${code}' }, '*');
-            window.close();
+            setTimeout(() => {
+              window.close();
+            }, 500);
           } else {
             window.location.href = '/';
           }

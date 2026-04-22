@@ -5,7 +5,11 @@ import {
   GoogleAuthProvider, 
   signOut, 
   onAuthStateChanged,
-  signInWithCredential
+  signInWithCredential,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -15,7 +19,11 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   signIn: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,96 +75,175 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  const formatAuthError = (message: string) => {
+    if (message.includes('auth/email-already-in-use')) return "This email is already registered in the neural network.";
+    if (message.includes('auth/invalid-email')) return "The provided email format is invalid.";
+    if (message.includes('auth/weak-password')) return "The security cipher must be at least 6 characters.";
+    if (message.includes('auth/user-not-found') || message.includes('auth/wrong-password') || message.includes('auth/invalid-credential')) {
+      return "Invalid neural credentials. Please check your email and cipher.";
+    }
+    if (message.includes('auth/popup-blocked')) return "Login popup was blocked by your browser settings.";
+    if (message.includes('auth/popup-closed-by-user')) return "Login window was closed before completion.";
+    return message;
+  };
+
   const signIn = async () => {
     setLoading(true);
     setError(null);
-    // 1. Try Custom OAuth Client if configured (server-side flow)
+
+    // 1. Immediately open a blank popup to reserve the user gesture window.
+    // This is critical to prevent browsers from blocking the popup.
+    let authWindow: Window | null = null;
     try {
-      // Step A: Get Auth URL from our server
-      const urlResponse = await fetch('/api/auth/google/url');
-      if (urlResponse.ok) {
-        const { url } = await urlResponse.json();
-        
-        // Open popup
-        const authWindow = window.open(url, 'google_auth', 'width=500,height=600');
-        
-        if (!authWindow) {
-          throw { code: 'auth/popup-blocked' };
-        }
-
-        // Step B: Listen for the callback message
-        await new Promise<void>((resolve, reject) => {
-          const handleAuthMessage = async (event: MessageEvent) => {
-            if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
-              window.removeEventListener('message', handleAuthMessage);
-              const { code } = event.data;
-              
-              try {
-                // Step C: Exchange code for tokens on server
-                const tokenResponse = await fetch('/api/auth/google/callback', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ code })
-                });
-
-                if (!tokenResponse.ok) throw new Error('Token exchange failed');
-                
-                const { id_token } = await tokenResponse.json();
-                
-                // Step D: Sign in to Firebase with the obtained credential
-                const credential = GoogleAuthProvider.credential(id_token);
-                await signInWithCredential(auth, credential);
-                resolve();
-              } catch (err) {
-                reject(err);
-              }
-            }
-          };
-
-          window.addEventListener('message', handleAuthMessage);
-          
-          // Fallback: resolution via onAuthStateChanged will handle the final state
-          // but we still need a timeout or window interval to detect close
-          const checkWindow = setInterval(() => {
-            if (authWindow.closed) {
-              clearInterval(checkWindow);
-              // Small delay to allow message to process if it just finished
-              setTimeout(() => reject({ code: 'auth/popup-closed-by-user' }), 1000);
-            }
-          }, 500);
-        });
-        return; // Success handled by onAuthStateChanged
+      authWindow = window.open('about:blank', 'google_auth', 'width=500,height=600');
+      
+      if (authWindow) {
+        authWindow.document.write(`
+          <div style="font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; color: #6366f1; background: #0f172a; text-align: center; padding: 20px;">
+            <div style="margin-bottom: 24px; width: 64px; height: 64px; border: 4px solid rgba(99, 102, 241, 0.1); border-top-color: #6366f1; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600; color: #f8fafc;">Initiating Neural Sync</h3>
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 12px; max-width: 250px; line-height: 1.5;">Preparing secure authentication tunnel via Google Identity Protocol...</p>
+            <style>
+              @keyframes spin { to { transform: rotate(360deg); } }
+              body { margin: 0; overflow: hidden; }
+            </style>
+          </div>
+        `);
       }
-    } catch (error: any) {
-      console.warn("Custom OAuth failed or not configured, falling back to standard popup:", error);
-      if (error.code === 'auth/popup-blocked') {
-        setError("Login popup was blocked. In this preview environment, you may need to 'Open in New Tab' using the button in the top right to complete authentication.");
-        setLoading(false);
-        throw error;
-      }
-      // Fallback to standard Firebase popup if custom server fails or isn't set up
+    } catch (e) {
+      console.warn("Initial popup attempt failed:", e);
     }
 
-    const provider = new GoogleAuthProvider();
+    if (!authWindow) {
+      setError("Login popup was blocked. In this preview environment, you MUST use the 'Open in New Tab' button in the top right corner of the AI Studio preview to complete authentication.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      console.error("Sign in failed:", error);
-      let message = "Authentication failed. Please try again.";
+      // 2. Fetch the actual Auth URL from our backend
+      const urlResponse = await fetch('/api/auth/google/url');
       
-      if (error.code === 'auth/popup-blocked') {
-        message = "Login popup was blocked. In this preview environment, you may need to 'Open in New Tab' using the button in the top right to complete authentication.";
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        message = "Login request was cancelled.";
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        message = "The login window was closed before completion.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-        message = "This domain is not authorized for login. Check Firebase Console settings.";
+      if (!urlResponse.ok) {
+        throw new Error('Failed to reach authentication server');
       }
       
-      setError(message);
+      const { url } = await urlResponse.json();
+
+      if (authWindow.closed) {
+        throw new Error('auth/popup-closed-by-user');
+      }
+
+      // 3. Move the already-open window to Google
+      authWindow.location.href = url;
+
+      // 4. Listen for the success message from our /auth/callback page
+      await new Promise<void>((resolve, reject) => {
+        let isFinished = false;
+        
+        const cleanup = () => {
+          isFinished = true;
+          window.removeEventListener('message', handleAuthMessage);
+          clearInterval(checkWindowInterval);
+        };
+
+        const handleAuthMessage = async (event: MessageEvent) => {
+          if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+            const { code } = event.data;
+            cleanup();
+            
+            try {
+              const tokenResponse = await fetch('/api/auth/google/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+              });
+
+              if (!tokenResponse.ok) throw new Error('Token exchange failed');
+              
+              const { id_token } = await tokenResponse.json();
+              const credential = GoogleAuthProvider.credential(id_token);
+              await signInWithCredential(auth, credential);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }
+        };
+
+        window.addEventListener('message', handleAuthMessage);
+        
+        // Polling for window closure
+        const checkWindowInterval = setInterval(() => {
+          if (authWindow?.closed && !isFinished) {
+            cleanup();
+            // Final check: did a success message just arrive in the same tick?
+            setTimeout(() => {
+              if (isFinished) return; // Already resolved by message
+              reject(new Error('auth/popup-closed-by-user'));
+            }, 100);
+          }
+        }, 500);
+      });
+
+    } catch (error: any) {
+      if (authWindow && !authWindow.closed) authWindow.close();
+      
+      console.error("Authentication Process Error:", error);
+      
+      let displayMessage = formatAuthError(error.message);
+      
+      if (!authWindow) {
+        displayMessage = "Login popup was blocked. Please 'Open in New Tab' using the button in the top right to complete authentication.";
+      }
+      
+      setError(displayMessage);
+    } finally {
       setLoading(false);
-      throw error;
+    }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string, name: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(userCredential.user, { displayName: name });
+      // Profile creation in Firestore happens via useEffect/onAuthStateChanged
+    } catch (err: any) {
+      console.error("Sign up failed:", err);
+      setError(formatAuthError(err.message || "Failed to create account"));
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, pass: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err: any) {
+      console.error("Sign in failed:", err);
+      setError(formatAuthError(err.message || "Invalid email or password"));
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendPasswordReset = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err: any) {
+      console.error("Password reset failed:", err);
+      setError(formatAuthError(err.message || "Failed to send reset email"));
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -169,8 +256,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const clearError = () => setError(null);
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signInWithEmail, signUpWithEmail, sendPasswordReset, logout, clearError }}>
       {children}
     </AuthContext.Provider>
   );
