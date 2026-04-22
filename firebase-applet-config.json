@@ -1,10 +1,10 @@
 {
-  "projectId": "wesmont-hotels",
-  "appId": "1:307188788471:web:89f1923399ee8f8c3577f2",
-  "apiKey": "AIzaSyBpMsHIgkSfV0x6LwvkvNUFQb6y6h_RfVQ",
-  "authDomain": "wesmont-hotels.firebaseapp.com",
+  "projectId": "gen-lang-client-0523152061",
+  "appId": "1:157493051719:web:0341df006ae805884e8c62",
+  "apiKey": "AIzaSyAHFoWLstmBQtV66fgfu5zHHQSlEaMBN3s",
+  "authDomain": "gen-lang-client-0523152061.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-0326e94e-8250-4722-bf34-e08ed9f01b5b",
-  "storageBucket": "wesmont-hotels.firebasestorage.app",
-  "messagingSenderId": "307188788471",
+  "storageBucket": "gen-lang-client-0523152061.firebasestorage.app",
+  "messagingSenderId": "157493051719",
   "measurementId": ""
 }

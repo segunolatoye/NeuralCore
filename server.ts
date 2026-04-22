@@ -11,12 +11,14 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.set('trust proxy', true);
   app.use(express.json());
 
   // API Route: Build Google Auth URL
   app.get('/api/auth/google/url', (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = `${process.env.APP_URL || 'http://localhost:3000'}/auth/callback`;
+    const origin = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const redirectUri = `${origin}/auth/callback`;
     
     if (!clientId) {
       return res.status(500).json({ error: 'GOOGLE_CLIENT_ID not configured' });
@@ -40,7 +42,8 @@ async function startServer() {
     const { code } = req.body;
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri = `${process.env.APP_URL || 'http://localhost:3000'}/auth/callback`;
+    const origin = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const redirectUri = `${origin}/auth/callback`;
 
     if (!code || !clientId || !clientSecret) {
       return res.status(400).json({ error: 'Missing required auth parameters' });
