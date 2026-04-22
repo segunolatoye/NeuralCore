@@ -7,9 +7,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
+export async function createServerApp() {
   const app = express();
-  const PORT = 3000;
 
   app.set('trust proxy', true);
   app.use(express.json());
@@ -86,6 +85,13 @@ async function startServer() {
     `);
   });
 
+  return app;
+}
+
+async function startServer() {
+  const app = await createServerApp();
+  const PORT = 3000;
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -106,4 +112,6 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer();
+}
