@@ -1,7 +1,11 @@
-import { createServerApp } from '../server.js';
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import { createServerApp } from '../server.ts';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const app = await createServerApp();
-  return app(req, res);
+export default async function handler(req: any, res: any) {
+  try {
+    const app = await createServerApp();
+    return app(req, res);
+  } catch (err: any) {
+    console.error('Vercel Function Error:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  }
 }

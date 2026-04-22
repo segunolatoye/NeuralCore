@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
+// Dynamic import for Vite to avoid production crashes
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,6 +12,11 @@ export async function createServerApp() {
 
   app.set('trust proxy', true);
   app.use(express.json());
+
+  // API Routes
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', env: process.env.NODE_ENV });
+  });
 
   // API Route: Build Google Auth URL
   app.get('/api/auth/google/url', (req, res) => {
@@ -92,14 +97,20 @@ async function startServer() {
   const app = await createServerApp();
   const PORT = 3000;
 
-  // Vite middleware for development
+  // Vite/Static logic - ONLY for non-Vercel environments (like Local or Cloud Run)
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
+    try {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.warn('Vite not found, skipping middleware');
+    }
+  } else if (!process.env.VERCEL) {
+    // Regular production server (like Cloud Run) serves static files
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*all', (req, res) => {
