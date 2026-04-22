@@ -18,9 +18,18 @@ app.get('/api/health', (req, res) => {
 
 // API Route: Build Google Auth URL
 app.get('/api/auth/google/url', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  // Use Vercel URL or fallback to detected host
-  const origin = process.env.APP_URL || (req.get('host') ? `https://${req.get('host')}` : '');
+  
+  // Use the standard Cloud Run host if available, or the APP_URL secret
+  // We prefer the current request host to ensure the redirect_uri perfectly matches the current domain
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const origin = host ? `${protocol}://${host}` : (process.env.APP_URL || '');
+  
   const redirectUri = `${origin}/auth/callback`;
   
   if (!clientId) {
@@ -42,10 +51,15 @@ app.get('/api/auth/google/url', (req, res) => {
 
 // API Route: Exchange Code for Tokens
 app.post('/api/auth/google/callback', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const { code } = req.body;
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const origin = process.env.APP_URL || (req.get('host') ? `https://${req.get('host')}` : '');
+  
+  const host = req.get('host');
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const origin = host ? `${protocol}://${host}` : (process.env.APP_URL || '');
+  
   const redirectUri = `${origin}/auth/callback`;
 
   if (!code || !clientId || !clientSecret) {
